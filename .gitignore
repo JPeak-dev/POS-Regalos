@@ -1,0 +1,17 @@
+# Caché de Python y archivos compilados
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Bases de datos locales (para no sobreescribir datos reales)
+*.db
+*.sqlite3
+punto_de_venta.db
+
+# Entornos virtuales (si llegas a usar uno)
+venv/
+env/
+
+# Archivos de configuración del sistema operativo (opcional pero recomendado)
+.DS_Store
+Thumbs.db
