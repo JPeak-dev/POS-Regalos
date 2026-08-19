@@ -1,0 +1,207 @@
+import sqlite3
+from datetime import datetime
+
+class BaseDatos:
+    def __init__(self,db_name="punto_de_venta.db"):
+
+                self.conn = sqlite3.connect(db_name)
+                self.conn.row_factory = sqlite3.Row
+                self.cursor = self.conn.cursor()
+
+
+    def iniciar_db(self):
+
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS productos (
+                codigo TEXT PRIMARY KEY,
+                nombre TEXT NOT NULL,
+                precio REAL NOT NULL,
+                stock INTEGER NOT NULL
+            )
+        ''')
+
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS ventas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                fecha_hora TEXT NOT NULL,
+                total REAL NOT NULL,
+                pago REAL NOT NULL,
+                cambio REAL NOT NULL,
+                metodo_pago TEXT NOT NULL DEFAULT 'Efectivo'
+            )
+        ''')
+
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS detalle_ventas (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                venta_id INTEGER NOT NULL,
+                codigo TEXT NOT NULL,
+                nombre TEXT NOT NULL,
+                cantidad INTEGER NOT NULL,
+                precio_unitario REAL NOT NULL,
+                subtotal REAL NOT NULL,
+                FOREIGN KEY (venta_id) REFERENCES ventas(id)
+            )
+        ''')
+
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS apartados (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                cliente TEXT NOT NULL,
+                fecha_creacion TEXT NOT NULL,
+                fecha_liquidacion TEXT,
+                total REAL NOT NULL,
+                a_cuenta REAL NOT NULL,
+                resta REAL NOT NULL,
+                estado TEXT DEFAULT 'Pendiente'
+            )
+        ''')
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS detalle_apartados (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                apartado_id INTEGER NOT NULL,
+                codigo TEXT NOT NULL,
+                nombre TEXT NOT NULL,
+                cantidad INTEGER NOT NULL,
+                precio_unitario REAL NOT NULL,
+                subtotal REAL NOT NULL,
+                FOREIGN KEY (apartado_id) REFERENCES apartados(id)
+            )
+        ''')
+
+        self.conn.commit()
+
+    def obtener_producto(self, codigo):
+        self.cursor.execute("SELECT nombre,precio,stock FROM productos WHERE codigo = ?", (codigo,))
+        return self.cursor.fetchone()  # Devuelve la tupla o None
+
+    def obtener_todos_productos(self):
+        self.cursor.execute ("SELECT * FROM productos")
+        return self.cursor.fetchall()
+
+    def guardar_productos(self,cod, nom,pre,sto):
+
+        try:
+            self.cursor.execute("INSERT INTO productos VALUES (?, ?, ?, ?)", 
+                                (cod, nom, pre, sto))
+            self.conn.commit()
+            return True,"Producto registrado correctamente "
+        
+        except sqlite3.IntegrityError:
+
+            return False, "Error", "Ya existe un producto registrado con ese codigo de barras"
+        
+        except ValueError:
+
+            return False, "Error", "El precio y stock deben ser valores numéricos válidos."
+
+    def eliminar_productos(self,codigo,datos):
+        self.cursor.execute("UPDATE productos SET stock = stock - ? WHERE codigo = ?", (datos['cant'], codigo))
+        self.conn.commit()
+
+    def borrar_productos(self,codigo):
+        self.cursor.execute("DELETE FROM productos WHERE codigo =?",(codigo,))
+        self.conn.commit()
+
+    def registrar_venta(self, carrito, total, pago, cambio, metodo_pago='Efectivo'):
+        fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Registrar encabezado de la venta
+        self.cursor.execute(
+            "INSERT INTO ventas (fecha_hora, total, pago, cambio, metodo_pago) VALUES (?, ?, ?, ?, ?)",
+            (fecha_actual, total, pago, cambio, metodo_pago)
+        )
+        venta_id = self.cursor.lastrowid # Recupera el ID de la venta recién creada
+        
+        # Registrar el detalle de producto
+        for codigo, datos in carrito.items():
+            subtotal = datos['cant'] * datos['precio']
+            self.cursor.execute("""
+                INSERT INTO detalle_ventas (venta_id, codigo, nombre, cantidad, precio_unitario, subtotal)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (venta_id, codigo, datos['nombre'], datos['cant'], datos['precio'], subtotal))
+        
+        self.conn.commit()
+        return venta_id
+
+    def obtener_ventas_por_fecha(self, fecha):
+        # Seleccionamos metodo de pago
+        self.cursor.execute("""
+            SELECT id, fecha_hora, total, pago, cambio, metodo_pago 
+            FROM ventas 
+            WHERE fecha_hora LIKE ? 
+            ORDER BY fecha_hora DESC
+        """, (f"{fecha}%",))
+        return self.cursor.fetchall()
+
+    def obtener_totales_por_metodo(self, fecha):
+        self.cursor.execute("""
+            SELECT metodo_pago, SUM(total) as total_vendido
+            FROM ventas 
+            WHERE fecha_hora LIKE ? 
+            GROUP BY metodo_pago
+        """, (f"{fecha}%",))
+        return self.cursor.fetchall()
+
+    def obtener_detalle_venta(self, venta_id):
+        self.cursor.execute("""
+            SELECT codigo, nombre, cantidad, precio_unitario, subtotal 
+            FROM detalle_ventas 
+            WHERE venta_id = ?
+        """, (venta_id,))
+        return self.cursor.fetchall()
+
+    # Sistema de apartado
+    def registrar_apartado(self, cliente, carrito, total, a_cuenta):
+        fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        resta = total - a_cuenta
+        estado = 'Liquidado' if resta <= 0 else 'Pendiente'
+        fecha_liq = fecha_actual if estado == 'Liquidado' else "---"
+        
+        # Crear el registro del apartado
+        self.cursor.execute("""
+            INSERT INTO apartados (cliente, fecha_creacion, fecha_liquidacion, total, a_cuenta, resta, estado)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (cliente, fecha_actual, fecha_liq, total, a_cuenta, resta, estado))
+        
+        apartado_id = self.cursor.lastrowid
+        
+        # Guardar los productos apartados
+        for codigo, datos in carrito.items():
+            subtotal = datos['cant'] * datos['precio']
+            self.cursor.execute("""
+                INSERT INTO detalle_apartados (apartado_id, codigo, nombre, cantidad, precio_unitario, subtotal)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (apartado_id, codigo, datos['nombre'], datos['cant'], datos['precio'], subtotal))
+            
+        self.conn.commit()
+        return apartado_id
+
+    def obtener_todos_apartados(self):
+        self.cursor.execute("""
+            SELECT id, cliente, fecha_creacion, fecha_liquidacion, total, a_cuenta, resta, estado 
+            FROM apartados 
+            ORDER BY estado DESC, fecha_creacion ASC
+        """)
+        return self.cursor.fetchall()
+
+    def abonar_a_apartado(self, apartado_id, monto_abono):
+        fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        self.cursor.execute("SELECT a_cuenta, resta FROM apartados WHERE id = ?", (apartado_id,))
+        row = self.cursor.fetchone()
+        
+        if row:
+            nuevo_a_cuenta = row['a_cuenta'] + monto_abono
+            nueva_resta = row['resta'] - monto_abono
+            
+            estado = 'Liquidado' if nueva_resta <= 0 else 'Pendiente'
+            fecha_liq = fecha_actual if estado == 'Liquidado' else "---"
+            
+            self.cursor.execute("""
+                UPDATE apartados 
+                SET a_cuenta = ?, resta = ?, estado = ?, fecha_liquidacion = ?
+                WHERE id = ?
+            """, (nuevo_a_cuenta, nueva_resta, estado, fecha_liq, apartado_id))
+            self.conn.commit()
+            return estado, nueva_resta
