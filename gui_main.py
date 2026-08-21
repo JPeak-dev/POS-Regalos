@@ -552,26 +552,30 @@ class Interfaz:
 
     def abrir_ventana_reportes(self):
         win = tk.Toplevel(self.root)
-        win.title("Reporte de Ventas")
-        win.geometry("800x550")
+        win.title("Reporte de Ventas y Corte de Caja")
+        win.geometry("900x600")
         win.configure(bg="#ffffff")
         win.grab_set()
 
         top_frame = tk.Frame(win, bg="#ffffff", pady=15, padx=20)
         top_frame.pack(fill="x")
 
-        tk.Label(top_frame, text="Fecha a consultar (YYYY-MM-DD):", bg="#ffffff", font=("Segoe UI", 11, "bold"), fg="#334155").pack(side="left")
+        tk.Label(top_frame, text="Fecha:", bg="#ffffff", font=("Segoe UI", 11, "bold"), fg="#334155").pack(side="left")
         
-        # Poner la fecha de hoy por defecto
         fecha_hoy = datetime.datetime.now().strftime("%Y-%m-%d")
-        ent_fecha = tk.Entry(top_frame, font=("Segoe UI", 12), bd=1, relief="solid")
+        ent_fecha = tk.Entry(top_frame, font=("Segoe UI", 11), bd=1, relief="solid", width=12)
         ent_fecha.insert(0, fecha_hoy)
-        ent_fecha.pack(side="left", padx=10)
+        ent_fecha.pack(side="left", padx=(5, 15))
+
+        # Campo para ingresar o modificar el Fondo de Caja Base
+        tk.Label(top_frame, text="Fondo Inicial ($):", bg="#ffffff", font=("Segoe UI", 11, "bold"), fg="#334155").pack(side="left")
+        ent_fondo = tk.Entry(top_frame, font=("Segoe UI", 11), bd=1, relief="solid", width=10)
+        ent_fondo.pack(side="left", padx=(5, 10))
 
         table_frame = tk.Frame(win, bg="#ffffff", padx=20, pady=10)
         table_frame.pack(fill="both", expand=True)
 
-        columns = ("id", "hora", "total", "pago", "cambio","metodo")
+        columns = ("id", "hora", "total", "pago", "cambio", "metodo")
         tabla_ventas = ttk.Treeview(table_frame, columns=columns, show="headings")
         tabla_ventas.heading("id", text="ID Venta")
         tabla_ventas.heading("hora", text="Fecha / Hora")
@@ -596,16 +600,75 @@ class Interfaz:
         bottom_frame = tk.Frame(win, bg="#f8fafc", pady=15, padx=20)
         bottom_frame.pack(fill="x")
 
-        lbl_total_efectivo = tk.Label(bottom_frame, text="Efectivo: $0.00", font=("Segoe UI", 14, "bold"), bg="#f8fafc", fg="#16a34a")
-        lbl_total_efectivo.pack(side="left", padx=(0, 20))
+        lbl_fondo_caja = tk.Label(bottom_frame, text="Fondo Inicial: $0.00", font=("Segoe UI", 12), bg="#f8fafc", fg="#475569")
+        lbl_fondo_caja.pack(side="left", padx=(0, 15))
 
-        lbl_total_tarjeta = tk.Label(bottom_frame, text="Tarjeta: $0.00", font=("Segoe UI", 14, "bold"), bg="#f8fafc", fg="#2563eb")
-        lbl_total_tarjeta.pack(side="left", padx=20)
+        lbl_total_efectivo = tk.Label(bottom_frame, text="Efectivo en Cajón: $0.00", font=("Segoe UI", 13, "bold"), bg="#f8fafc", fg="#16a34a")
+        lbl_total_efectivo.pack(side="left", padx=15)
 
-        lbl_total_dia = tk.Label(bottom_frame, text="Total General: $0.00", font=("Segoe UI", 16, "bold"), bg="#f8fafc", fg="#0f172a")
+        lbl_total_tarjeta = tk.Label(bottom_frame, text="Tarjeta: $0.00", font=("Segoe UI", 13, "bold"), bg="#f8fafc", fg="#2563eb")
+        lbl_total_tarjeta.pack(side="left", padx=15)
+
+        lbl_total_dia = tk.Label(bottom_frame, text="Total Vendido: $0.00", font=("Segoe UI", 15, "bold"), bg="#f8fafc", fg="#0f172a")
         lbl_total_dia.pack(side="right")
 
         tabla_ventas.bind("<Double-1>", self.ver_detalle_venta)
+
+        def guardar_y_buscar():
+            fecha = ent_fecha.get().strip()
+            
+            # Guardar el fondo ingresado si es válido
+            texto_fondo = ent_fondo.get().strip()
+            if texto_fondo:
+                try:
+                    monto_fondo = float(texto_fondo)
+                    self.bd.guardar_fondo_caja(fecha, monto_fondo)
+                except ValueError:
+                    messagebox.showwarning("Atención", "El fondo inicial debe ser un número válido.", parent=win)
+                    return
+
+            # Cargar Fondo de Caja guardado
+            fondo_inicial = self.bd.obtener_fondo_caja(fecha)
+            ent_fondo.delete(0, tk.END)
+            ent_fondo.insert(0, f"{fondo_inicial:.2f}")
+
+            # Limpiar y rellenar tabla
+            for row in tabla_ventas.get_children():
+                tabla_ventas.delete(row)
+                
+            ventas = self.bd.obtener_ventas_por_fecha(fecha)
+            for v in ventas:
+                etiquetas = ('tarjeta',) if v[5] == 'Tarjeta' else ('efectivo',)
+                tabla_ventas.insert("", "end", values=(v[0], v[1], f"${v[2]:.2f}", f"${v[3]:.2f}", f"${v[4]:.2f}", v[5]), tags=etiquetas)
+            
+            tabla_ventas.tag_configure('tarjeta', foreground="#2563eb")
+            
+            # Calcular Totales
+            totales = self.bd.obtener_totales_por_metodo(fecha)
+            ventas_efectivo = 0.0
+            ventas_tarjeta = 0.0
+            
+            for metodo, total in totales:
+                if metodo == "Efectivo" and total:
+                    ventas_efectivo = total
+                elif metodo == "Tarjeta" and total:
+                    ventas_tarjeta = total
+                    
+            efectivo_total_cajon = fondo_inicial + ventas_efectivo
+            gran_total_vendido = ventas_efectivo + ventas_tarjeta
+            
+            # Actualizar interfaz
+            lbl_fondo_caja.config(text=f"Fondo Base: ${fondo_inicial:.2f}")
+            lbl_total_efectivo.config(text=f"Efectivo en Cajón: ${efectivo_total_cajon:.2f}")
+            lbl_total_tarjeta.config(text=f"Tarjeta: ${ventas_tarjeta:.2f}")
+            lbl_total_dia.config(text=f"Total Vendido: ${gran_total_vendido:.2f}")
+
+        btn_buscar = tk.Button(top_frame, text="🔍 Consultar / Actualizar", font=("Segoe UI", 10, "bold"),
+                            bg="#3b82f6", fg="white", bd=0, padx=12, cursor="hand2", command=guardar_y_buscar)
+        btn_buscar.pack(side="left", padx=10)
+
+        # Cargar datos iniciales
+        guardar_y_buscar()
 
         def buscar_ventas():
             # Limpiar tabla
