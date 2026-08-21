@@ -253,6 +253,27 @@ class BaseDatos:
 
     
 
+    def actualizar_producto(self, codigo, nombre, precio, stock):
+        """
+        Actualiza el nombre, precio y stock de un producto existente.
+        El código no se modifica ya que es la llave primaria.
+        """
+        self.cursor.execute("""
+            UPDATE productos 
+            SET nombre = ?, precio = ?, stock = ? 
+            WHERE codigo = ?
+        """, (nombre, precio, stock, codigo))
+        self.conn.commit()
+
+    def buscar_productos(self, texto):
+        """Busca productos cuya clave o nombre coincidan parcialmente con el texto."""
+        param = f"%{texto}%"
+        self.cursor.execute(
+            "SELECT codigo, nombre, precio, stock FROM productos WHERE codigo LIKE ? OR nombre LIKE ?",
+            (param, param)
+        )
+        return self.cursor.fetchall()
+
     def obtener_fondo_caja(self, fecha):
         """Devuelve el fondo inicial registrado para una fecha específica."""
         self.cursor.execute("SELECT fondo_inicial FROM caja_diaria WHERE fecha = ?", (fecha,))
