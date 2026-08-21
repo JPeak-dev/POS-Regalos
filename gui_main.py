@@ -444,7 +444,7 @@ class Interfaz:
             
         self.cargar_tabla_inventario(productos)
 
-    def eliminar_prod(self, event):
+    def mostrar_menu_opciones(self, event):
         # Identificar en qué fila se hizo el clic
         item_id = self.tabla_inv.identify_row(event.y)
         
@@ -455,8 +455,13 @@ class Interfaz:
             # Crear el menú
             menu = tk.Menu(self.ventana, tearoff=0)
             
-            # Eliminación de producto 
+            # Opción de edición
+            menu.add_command(label="Editar producto", command=lambda: self.abrir_edicion(item_id))
+            
+            # Opción de eliminación
             menu.add_command(label="Eliminar producto", command=lambda: self.ejecutar_eliminacion(item_id))
+            
+            # Mostrar el menú en las coordenadas del ratón
             menu.tk_popup(event.x_root, event.y_root)
 
     def ejecutar_eliminacion(self, item_id):
@@ -476,6 +481,74 @@ class Interfaz:
             self.tabla_inv.delete(item_id)
             
             messagebox.showinfo("Éxito", f"Producto '{nombre}' eliminado correctamente.", parent=self.ventana)
+
+    def abrir_edicion(self, item_id):
+        # Extraer los datos actuales de la fila
+        item_values = self.tabla_inv.item(item_id)['values']
+        codigo_actual = str(item_values[0])
+        nombre_actual = str(item_values[1])
+        precio_actual = str(item_values[2])
+        cant_actual = str(item_values[3])
+
+        # Crear ventana secundaria para editar
+        ventana_edicion = tk.Toplevel(self.ventana)
+        ventana_edicion.title("Editar Producto")
+        ventana_edicion.geometry("350x250")
+        ventana_edicion.configure(bg="#ffffff")
+        ventana_edicion.grab_set() # Bloquea la ventana principal hasta cerrar esta
+
+        # Variables para los Entry
+        var_codigo = tk.StringVar(value=codigo_actual)
+        var_nombre = tk.StringVar(value=nombre_actual)
+        var_precio = tk.StringVar(value=precio_actual)
+        var_cant = tk.StringVar(value=cant_actual)
+
+        # Formulario
+        tk.Label(ventana_edicion, text="Código:", bg="#ffffff").grid(row=0, column=0, padx=10, pady=10, sticky="e")
+        tk.Entry(ventana_edicion, textvariable=var_codigo, state="readonly").grid(row=0, column=1, padx=10, pady=10) # Código como readonly (opcional)
+
+        tk.Label(ventana_edicion, text="Nombre:", bg="#ffffff").grid(row=1, column=0, padx=10, pady=10, sticky="e")
+        tk.Entry(ventana_edicion, textvariable=var_nombre).grid(row=1, column=1, padx=10, pady=10)
+
+        tk.Label(ventana_edicion, text="Precio U.:", bg="#ffffff").grid(row=2, column=0, padx=10, pady=10, sticky="e")
+        tk.Entry(ventana_edicion, textvariable=var_precio).grid(row=2, column=1, padx=10, pady=10)
+
+        tk.Label(ventana_edicion, text="Cant.:", bg="#ffffff").grid(row=3, column=0, padx=10, pady=10, sticky="e")
+        tk.Entry(ventana_edicion, textvariable=var_cant).grid(row=3, column=1, padx=10, pady=10)
+
+        # Botón Guardar
+        tk.Button(ventana_edicion, text="Guardar Cambios", 
+                    command=lambda: self.guardar_edicion(
+                    item_id, codigo_actual, var_nombre.get(), var_precio.get(), var_cant.get(), ventana_edicion
+                    )).grid(row=4, column=0, columnspan=2, pady=15)
+
+    def guardar_edicion(self, item_id, codigo, nuevo_nombre, nuevo_precio, nueva_cant, ventana_edicion):
+        # Validar que no haya campos vacíos
+        if not nuevo_nombre.strip() or not str(nuevo_precio).strip() or not str(nueva_cant).strip():
+            messagebox.showwarning("Atención", "Por favor, completa todos los campos antes de guardar.", parent=ventana_edicion)
+            return # Detiene la ejecución aquí si hay campos vacíos
+
+        # Validar que el precio y cantidad sean números válidos
+        try:
+            precio_valido = float(nuevo_precio)
+            cant_valida = int(nueva_cant)
+        except ValueError:
+            messagebox.showwarning("Atención", "El precio debe ser un número y la cantidad un número entero.", parent=ventana_edicion)
+            return # Detiene la ejecución si escribieron letras en vez de números
+
+        # Proceder a guardar si las validaciones fueron exitosas
+        try:
+            # Actualizar en tu Base de Datos usando los datos validados
+            self.bd.actualizar_producto(codigo, nuevo_nombre, precio_valido, cant_valida)
+            
+            # Actualizar visualmente en el Treeview
+            self.tabla_inv.item(item_id, values=(codigo, nuevo_nombre, precio_valido, cant_valida))
+            
+            messagebox.showinfo("Éxito", "Producto actualizado correctamente", parent=ventana_edicion)
+            ventana_edicion.destroy()
+            
+        except Exception as e:
+            messagebox.showerror("Error", f"Error al actualizar la base de datos: {str(e)}", parent=ventana_edicion)
 
     def abrir_ventana_reportes(self):
         win = tk.Toplevel(self.root)
