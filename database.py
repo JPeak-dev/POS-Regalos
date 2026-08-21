@@ -69,6 +69,13 @@ class BaseDatos:
             )
         ''')
 
+        self.cursor.execute('''
+        CREATE TABLE IF NOT EXISTS caja_diaria (
+            fecha TEXT PRIMARY KEY,
+            fondo_inicial REAL NOT NULL
+            )
+        ''')
+
         self.conn.commit()
 
     def obtener_producto(self, codigo):
@@ -205,3 +212,17 @@ class BaseDatos:
             """, (nuevo_a_cuenta, nueva_resta, estado, fecha_liq, apartado_id))
             self.conn.commit()
             return estado, nueva_resta
+    def obtener_fondo_caja(self, fecha):
+        """Devuelve el fondo inicial registrado para una fecha específica."""
+        self.cursor.execute("SELECT fondo_inicial FROM caja_diaria WHERE fecha = ?", (fecha,))
+        row = self.cursor.fetchone()
+        return row[0] if row else 0.0
+
+    def guardar_fondo_caja(self, fecha, monto):
+        """Registra o actualiza el fondo inicial del cajón para una fecha."""
+        self.cursor.execute("""
+            INSERT INTO caja_diaria (fecha, fondo_inicial) 
+            VALUES (?, ?)
+            ON CONFLICT(fecha) DO UPDATE SET fondo_inicial = excluded.fondo_inicial
+        """, (fecha, monto))
+        self.conn.commit()
