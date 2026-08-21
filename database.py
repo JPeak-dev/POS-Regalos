@@ -173,13 +173,27 @@ class BaseDatos:
         
         apartado_id = self.cursor.lastrowid
         
-        # Guardar los productos apartados
+        # Guardar el detalle de productos apartados
         for codigo, datos in carrito.items():
             subtotal = datos['cant'] * datos['precio']
             self.cursor.execute("""
                 INSERT INTO detalle_apartados (apartado_id, codigo, nombre, cantidad, precio_unitario, subtotal)
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (apartado_id, codigo, datos['nombre'], datos['cant'], datos['precio'], subtotal))
+
+        # Registrar anticipo como vena del dia
+        if a_cuenta > 0:
+            self.cursor.execute("""
+                INSERT INTO ventas (fecha_hora, total, pago, cambio, metodo_pago)
+                VALUES (?, ?, ?, 0.0, 'Efectivo')
+            """, (fecha_actual, a_cuenta, a_cuenta))
+            
+            venta_id = self.cursor.lastrowid
+            
+            self.cursor.execute("""
+                INSERT INTO detalle_ventas (venta_id, codigo, nombre, cantidad, precio_unitario, subtotal)
+                VALUES (?, 'APARTADO', ?, 1, ?, ?)
+            """, (venta_id, f"Anticipo Apartado #{apartado_id} ({cliente})", a_cuenta, a_cuenta))
             
         self.conn.commit()
         return apartado_id
@@ -195,23 +209,50 @@ class BaseDatos:
     def abonar_a_apartado(self, apartado_id, monto_abono):
         fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
-        self.cursor.execute("SELECT a_cuenta, resta FROM apartados WHERE id = ?", (apartado_id,))
+        self.cursor.execute("SELECT cliente, a_cuenta, resta FROM apartados WHERE id = ?", (apartado_id,))
         row = self.cursor.fetchone()
         
         if row:
+            cliente = row['cliente']
             nuevo_a_cuenta = row['a_cuenta'] + monto_abono
             nueva_resta = row['resta'] - monto_abono
             
             estado = 'Liquidado' if nueva_resta <= 0 else 'Pendiente'
             fecha_liq = fecha_actual if estado == 'Liquidado' else "---"
             
+            # Actualizar el estado del apartado
             self.cursor.execute("""
                 UPDATE apartados 
                 SET a_cuenta = ?, resta = ?, estado = ?, fecha_liquidacion = ?
                 WHERE id = ?
             """, (nuevo_a_cuenta, nueva_resta, estado, fecha_liq, apartado_id))
+
+            # Registrar el abono actual
+            self.cursor.execute("""
+                INSERT INTO ventas (fecha_hora, total, pago, cambio, metodo_pago)
+                VALUES (?, ?, ?, 0.0, 'Efectivo')
+            """, (fecha_actual, monto_abono, monto_abono))
+            
+            venta_id = self.cursor.lastrowid
+
+            self.cursor.execute("""
+                INSERT INTO detalle_ventas (venta_id, codigo, nombre, cantidad, precio_unitario, subtotal)
+                VALUES (?, 'ABONO', ?, 1, ?, ?)
+            """, (venta_id, f"Abono Apartado #{apartado_id} ({cliente})", monto_abono, monto_abono))
+            
             self.conn.commit()
             return estado, nueva_resta
+        
+    def obtener_todos_apartados(self):
+        self.cursor.execute("""
+            SELECT id, cliente, fecha_creacion, fecha_liquidacion, total, a_cuenta, resta, estado 
+            FROM apartados 
+            ORDER BY estado DESC, fecha_creacion ASC
+        """)
+        return self.cursor.fetchall()
+
+    
+
     def obtener_fondo_caja(self, fecha):
         """Devuelve el fondo inicial registrado para una fecha específica."""
         self.cursor.execute("SELECT fondo_inicial FROM caja_diaria WHERE fecha = ?", (fecha,))
