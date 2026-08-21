@@ -376,57 +376,73 @@ class Interfaz:
                                 bg="#3b82f6", fg="white", bd=0, pady=8, cursor="hand2", command=guardar)
         btn_guardar.pack(fill="x", padx=20, pady=20)
 
-    
-
-
     def mostrar_inventario(self):
+        self.ventana = tk.Toplevel(self.root)
+        self.ventana.title("Inventario")
+        self.ventana.state('zoomed')
+        self.ventana.configure(bg="#ffffff")
+        self.ventana.grab_set()
+
+        tk.Label(self.ventana, text="Inventario", font=("Segoe UI", 14, "bold"), bg="#ffffff", fg="#0f172a").pack(pady=15)
+        form_frame = tk.Frame(self.ventana, bg="#ffffff", padx=20)
+        form_frame.pack(fill="both", expand=False)
+
+        tk.Label(form_frame, text="Buscar producto (Código o Nombre):", font=("Segoe UI", 10, "bold"), bg="#ffffff", fg="#0f172a").grid(row=0, column=0, sticky="w", pady=(5,0))
+        
+        # Asignamos la entrada a self.ent_buscar para leerla desde la función de filtro
+        self.ent_buscar = tk.Entry(form_frame, font=("Segoe UI", 10, "bold"), bd=1, relief="solid")
+        self.ent_buscar.grid(row=1, column=0, sticky="ew", pady=(0, 10))
+        
+        # Vincular la búsqueda en tiempo real
+        self.ent_buscar.bind("<KeyRelease>", self.filtrar_inventario)
+
+        form_frame.grid_columnconfigure(0, weight=1)
+
+        table_frame = tk.Frame(self.ventana, bg="#2f00ff")
+        table_frame.pack(fill="both", expand=True)
+
+        columns = ("codigo", "nombre", "precio", "cant")
+        self.tabla_inv = ttk.Treeview(table_frame, columns=columns, show="headings")
+
+        self.tabla_inv.heading("codigo", text="Código")
+        self.tabla_inv.heading("nombre", text="Producto")
+        self.tabla_inv.heading("precio", text="Precio U.")
+        self.tabla_inv.heading("cant", text="Cant.")
+
+        self.tabla_inv.column("codigo", width=160, anchor="center")
+        self.tabla_inv.column("nombre", width=250, anchor="w")
+        self.tabla_inv.column("precio", width=80, anchor="center")
+        self.tabla_inv.column("cant", width=30, anchor="center")
+
+        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tabla_inv.yview)
+        self.tabla_inv.configure(yscroll=scrollbar.set)
+
+        self.tabla_inv.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # Cargar todos los productos inicialmente
+        self.cargar_tabla_inventario(self.bd.obtener_todos_productos())
+
+        self.tabla_inv.bind("<Button-3>", self.mostrar_menu_opciones)
+
+    def cargar_tabla_inventario(self, productos):
+        """Limpia la tabla y la vuelve a llenar con la lista de productos enviada."""
+        for item in self.tabla_inv.get_children():
+            self.tabla_inv.delete(item)
             
-            self.ventana = tk.Toplevel(self.root)
-            self.ventana.title ("Inventario")
-            self.ventana.state('zoomed')
-            self.ventana.configure(bg="#ffffff")
-            self.ventana.grab_set()
-    
-            tk.Label(self.ventana, text="Inventario", font=("Segoe UI", 14, "bold"), bg="#ffffff", fg="#0f172a").pack(pady=15)
-            form_frame = tk.Frame(self.ventana,bg="#ffffff", padx=20)
-            form_frame.pack(fill="both", expand=False)
-    
-            tk.Label(form_frame, text="Buscar producto", font=("Segoe UI", 10,"bold"), bg="#ffffff", fg="#0f172a").grid(row=0, column=0, sticky="w",pady=(5,0))
-            ent = tk.Entry(form_frame,font=("Segoe UI", 10,"bold"),bd=1,relief="solid")
-            ent.grid(row=1, column=0, sticky="ew", pady=(0, 10))
-    
-            form_frame.grid_columnconfigure(0, weight=1)
-    
-            table_frame = tk.Frame(self.ventana, bg="#2f00ff")
-            table_frame.pack(fill="both", expand=True)
-    
-            columns = ("codigo", "nombre", "precio", "cant")
-            self.tabla_inv = ttk.Treeview(table_frame, columns=columns, show="headings")
-    
-            self.tabla_inv.heading("codigo", text="Código")
-            self.tabla_inv.heading("nombre", text="Producto")
-            self.tabla_inv.heading("precio", text="Precio U.")
-            self.tabla_inv.heading("cant", text="Cant.")
-    
-            self.tabla_inv.column("codigo", width=160, anchor="center")
-            self.tabla_inv.column("nombre", width=250, anchor="w")
-            self.tabla_inv.column("precio", width=80, anchor="center")
-            self.tabla_inv.column("cant", width=30, anchor="center")
-    
-            scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tabla_inv.yview)
-            self.tabla_inv.configure(yscroll=scrollbar.set)
-    
-            self.tabla_inv.pack(side="left",fill="both", expand=True)
-            scrollbar.pack(side="right", fill="y")
+        for fila in productos:
+            self.tabla_inv.insert("", tk.END, values=(fila[0], fila[1], fila[2], fila[3]))
 
+    def filtrar_inventario(self, event=None):
+        """Obtiene el texto del cuadro de búsqueda y filtra la tabla en tiempo real."""
+        texto = self.ent_buscar.get().strip()
+        
+        if texto:
+            productos = self.bd.buscar_productos(texto)
+        else:
             productos = self.bd.obtener_todos_productos()
-
-            for fila in productos:
-
-                self.tabla_inv.insert("", tk.END,values=(fila[0],fila[1],fila[2],fila[3]))
-
-            self.ventana.bind("<Button-3>",self.eliminar_prod)
-
+            
+        self.cargar_tabla_inventario(productos)
 
     def eliminar_prod(self, event):
         # Identificar en qué fila se hizo el clic
