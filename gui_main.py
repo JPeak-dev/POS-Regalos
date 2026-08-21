@@ -296,7 +296,7 @@ class Interfaz:
 
         # Descontar del inventario en SQLite
         for codigo, datos in self.carrito.items():
-            self.bd.eliminar_productos(codigo, datos)
+            self.bd.descontar_stock(codigo, datos)
 
         cambio = pago - self.total_venta
         
@@ -667,7 +667,7 @@ class Interfaz:
 
             # Descontar stock
             for codigo, datos in self.carrito.items():
-                self.bd.eliminar_productos(codigo, datos)
+                self.bd.descontar_stock(codigo, datos)
 
             # Registro de apartados
             ap_id = self.bd.registrar_apartado(cliente, self.carrito, self.total_venta, anticipo)

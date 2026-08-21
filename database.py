@@ -102,7 +102,7 @@ class BaseDatos:
 
             return False, "Error", "El precio y stock deben ser valores numéricos válidos."
 
-    def eliminar_productos(self,codigo,datos):
+    def descontar_stock(self,codigo,datos):
         self.cursor.execute("UPDATE productos SET stock = stock - ? WHERE codigo = ?", (datos['cant'], codigo))
         self.conn.commit()
 
