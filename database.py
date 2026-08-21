@@ -198,14 +198,6 @@ class BaseDatos:
         self.conn.commit()
         return apartado_id
 
-    def obtener_todos_apartados(self):
-        self.cursor.execute("""
-            SELECT id, cliente, fecha_creacion, fecha_liquidacion, total, a_cuenta, resta, estado 
-            FROM apartados 
-            ORDER BY estado DESC, fecha_creacion ASC
-        """)
-        return self.cursor.fetchall()
-
     def abonar_a_apartado(self, apartado_id, monto_abono):
         fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
