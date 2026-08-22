@@ -107,11 +107,11 @@ class BaseDatos:
         
         except sqlite3.IntegrityError:
 
-            return False, "Error", "Ya existe un producto registrado con ese codigo de barras"
+            return False, "Error ya existe un producto registrado con ese codigo de barras"
         
         except ValueError:
 
-            return False, "Error", "El precio y stock deben ser valores numéricos válidos."
+            return False, "Error el precio y stock deben ser valores numéricos válidos."
 
     def descontar_stock(self,codigo,datos):
         self.cursor.execute("UPDATE productos SET stock = stock - ? WHERE codigo = ?", (datos['cant'], codigo))
