@@ -1,10 +1,21 @@
 import sqlite3
 from datetime import datetime
+import os
 
 class BaseDatos:
     def __init__(self,db_name="punto_de_venta.db"):
 
-                self.conn = sqlite3.connect(db_name)
+                data_path = os.getenv('APPDATA')
+
+                if not data_path:
+                    data_path = os.path.expanduser('~')
+
+                carpeta_pos = os.path.join(data_path, "PosRegalos")
+                os.makedirs(carpeta_pos, exist_ok=True)
+
+                self.db_path = os.path.join(carpeta_pos, db_name)
+
+                self.conn = sqlite3.connect(self.db_path)
                 self.conn.row_factory = sqlite3.Row
                 self.cursor = self.conn.cursor()
 
