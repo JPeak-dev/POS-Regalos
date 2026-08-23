@@ -54,11 +54,6 @@ class Interfaz:
         titulo = tk.Label(header_frame, text="🎁 La casa del regalo", font=("Segoe UI", 18, "bold"), fg="#ffffff", bg="#0f172a")
         titulo.pack(side="left", padx=20, pady=12)
 
-        btn_inventario = tk.Button(header_frame, text="➕ Agregar / Gestionar Producto", font=("Segoe UI", 10, "bold"),
-                                    bg="#3b82f6", fg="white", activebackground="#2563eb", activeforeground="white",
-                                    bd=2, padx=15, pady=6, cursor="hand2",command=self.abrir_ventana_productos)
-        btn_inventario.pack(side="right", padx=20)
-
         btn_mostrar_inv = tk.Button(header_frame,text="Mostrar inventario",font=("Segoe UI", 10, "bold"),
                                     bg="#3b82f6",fg="white",activebackground="#2563eb",activeforeground="white",
                                     bd=2, padx=0, pady=0,cursor="hand2", command=self.mostrar_inventario)
@@ -383,7 +378,16 @@ class Interfaz:
         self.ventana.configure(bg="#ffffff")
         self.ventana.grab_set()
 
-        tk.Label(self.ventana, text="Inventario", font=("Segoe UI", 14, "bold"), bg="#ffffff", fg="#0f172a").pack(pady=15)
+        header_frame = tk.Frame(self.ventana, bg="#0f172a", height=60)
+        header_frame.pack(fill="x", side="top")
+
+        tk.Label(header_frame, text="Inventario", font=("Segoe UI", 14, "bold"), bg="#0f172a", fg="#ffffff").pack(padx=12, pady=20,side="left")
+
+        btn_inventario = tk.Button(header_frame, text="➕ Agregar producto", font=("Segoe UI", 10, "bold"),
+                                    bg="#3b82f6", fg="white", activebackground="#2563eb", activeforeground="white",
+                                    bd=2, padx=15, pady=6, cursor="hand2",command=self.abrir_ventana_productos)
+        btn_inventario.pack(side="right", padx=10)
+
         form_frame = tk.Frame(self.ventana, bg="#ffffff", padx=20)
         form_frame.pack(fill="both", expand=False)
 
