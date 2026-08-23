@@ -361,7 +361,7 @@ class Interfaz:
 
             if exito:
                 messagebox.showinfo("Éxito", f"Producto '{nom}' registrado correctamente.", parent=win)
-                win.destroy()
+                win.destroy(self.cargar_tabla_inventario(self.bd.obtener_todos_productos()))
                 self.entry_codigo.focus_set()
             else:
                 messagebox.showerror("Error", mensaje, parent=win)
