@@ -942,7 +942,7 @@ class Interfaz:
             tk.Button(win_abono, text="Guardar Abono", bg="#16a34a", fg="white", font=("Segoe UI", 10, "bold"), command=procesar_abono).pack(pady=10)
 
         # Botones de Acción abajo
-        bottom_frame = tk.Frame(win, bg="#f1f5f9")
+        bottom_frame = tk.Frame(win, bg="#e08020")
         bottom_frame.pack(pady=10)
         tk.Button(bottom_frame, text="💵 Registrar Abono / Liquidar", font=("Segoe UI", 12, "bold"),
                     bg="#3b82f6", fg="white", bd=0, padx=20, pady=10, cursor="hand2", command=abonar).pack()
