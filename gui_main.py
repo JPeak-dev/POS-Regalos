@@ -526,27 +526,24 @@ class Interfaz:
                     item_id, codigo_actual, var_nombre.get(), var_precio.get(), var_cant.get(), ventana_edicion
                     )).grid(row=4, column=0, columnspan=2, pady=15)
 
-    def guardar_edicion(self, item_id, codigo, nuevo_nombre, nuevo_precio, nueva_cant, ventana_edicion):
+    def guardar_edicion(self, item_id, codigo, nuevo_nombre,nueva_desc, nuevo_precio, nueva_cant, ventana_edicion):
         # Validar que no haya campos vacíos
         if not nuevo_nombre.strip() or not str(nuevo_precio).strip() or not str(nueva_cant).strip():
             messagebox.showwarning("Atención", "Por favor, completa todos los campos antes de guardar.", parent=ventana_edicion)
-            return # Detiene la ejecución aquí si hay campos vacíos
-
-        # Validar que el precio y cantidad sean números válidos
+            return 
+        
         try:
             precio_valido = float(nuevo_precio)
             cant_valida = int(nueva_cant)
         except ValueError:
             messagebox.showwarning("Atención", "El precio debe ser un número y la cantidad un número entero.", parent=ventana_edicion)
-            return # Detiene la ejecución si escribieron letras en vez de números
+            return 
 
-        # Proceder a guardar si las validaciones fueron exitosas
         try:
-            # Actualizar en tu Base de Datos usando los datos validados
-            self.bd.actualizar_producto(codigo, nuevo_nombre, precio_valido, cant_valida)
+            self.bd.actualizar_producto(codigo, nuevo_nombre, nueva_desc, precio_valido, cant_valida)
             
             # Actualizar visualmente en el Treeview
-            self.tabla_inv.item(item_id, values=(codigo, nuevo_nombre, precio_valido, cant_valida))
+            self.tabla_inv.item(item_id, values=(codigo, nuevo_nombre, nueva_desc, precio_valido, cant_valida))
             
             messagebox.showinfo("Éxito", "Producto actualizado correctamente", parent=ventana_edicion)
             ventana_edicion.destroy()
@@ -579,9 +576,10 @@ class Interfaz:
         table_frame = tk.Frame(win, bg="#ffffff", padx=20, pady=10)
         table_frame.pack(fill="both", expand=True)
 
-        columns = ("id", "hora", "total", "pago", "cambio", "metodo")
+        columns = ("id", "codigo", "hora", "total", "pago", "cambio", "metodo")
         tabla_ventas = ttk.Treeview(table_frame, columns=columns, show="headings")
         tabla_ventas.heading("id", text="ID Venta")
+        tabla_ventas.heading("codigo", text="Código")
         tabla_ventas.heading("hora", text="Fecha / Hora")
         tabla_ventas.heading("total", text="Total")
         tabla_ventas.heading("pago", text="Pago Recibido")
@@ -589,6 +587,7 @@ class Interfaz:
         tabla_ventas.heading("metodo", text="Método")
 
         tabla_ventas.column("id", width=80, anchor="center")
+        tabla_ventas.column("codigo",width=80,anchor="center")
         tabla_ventas.column("hora", width=180, anchor="center")
         tabla_ventas.column("total", width=100, anchor="e")
         tabla_ventas.column("pago", width=100, anchor="e")
@@ -642,8 +641,8 @@ class Interfaz:
                 
             ventas = self.bd.obtener_ventas_por_fecha(fecha)
             for v in ventas:
-                etiquetas = ('tarjeta',) if v[5] == 'Tarjeta' else ('efectivo',)
-                tabla_ventas.insert("", "end", values=(v[0], v[1], f"${v[2]:.2f}", f"${v[3]:.2f}", f"${v[4]:.2f}", v[5]), tags=etiquetas)
+                etiquetas = ('tarjeta',) if v[6] == 'Tarjeta' else ('efectivo',)
+                tabla_ventas.insert("", "end", values=(v[0],v[1], v[2], f"${v[3]:.2f}", f"${v[4]:.2f}", f"${v[5]:.2f}", v[6]), tags=etiquetas)
             
             tabla_ventas.tag_configure('tarjeta', foreground="#2563eb")
             
@@ -680,19 +679,15 @@ class Interfaz:
                 tabla_ventas.delete(row)
                 
             fecha = ent_fecha.get().strip()
-            
-            # Rellenar la tabla 
+
             ventas = self.bd.obtener_ventas_por_fecha(fecha)
             for v in ventas:
-                # v = (id, fecha_hora, total, pago, cambio, metodo_pago)
-                # Colorear la fila dependiendo del método para hacerlo visualmente más fácil
-                etiquetas = ('tarjeta',) if v[5] == 'Tarjeta' else ('efectivo',)
-                tabla_ventas.insert("", "end", values=(v[0], v[1], f"${v[2]:.2f}", f"${v[3]:.2f}", f"${v[4]:.2f}", v[5]), tags=etiquetas)
-            
-            # Dar un color de texto sutil para diferenciar las tarjetas
+
+                etiquetas = ('tarjeta',) if v[6] == 'Tarjeta' else ('efectivo',)
+                tabla_ventas.insert("", "end", values=(v[0], v[1],v[2], f"${v[3]:.2f}", f"${v[4]:.2f}", f"${v[5]:.2f}", v[6]), tags=etiquetas)
+
             tabla_ventas.tag_configure('tarjeta', foreground="#2563eb")
-            
-            # Calcular los totales por método de pago usando tu nueva función
+
             totales = self.bd.obtener_totales_por_metodo(fecha)
             
             total_efectivo = 0.0
@@ -738,19 +733,16 @@ class Interfaz:
         if not detalles:
             messagebox.showinfo("Información", "No hay detalles registrados para esta venta.")
             return
-            
-        # Crear ventana emergente para lod detalles
+
         win_det = tk.Toplevel(self.root)
         win_det.title(f"Detalle de Venta #{venta_id}")
         win_det.geometry("500x450")
         win_det.configure(bg="#ffffff")
         win_det.grab_set() 
-        
-        # Encabezado del Ticket
+
         tk.Label(win_det, text=f"🧾 TICKET DE VENTA #{venta_id}", font=("Segoe UI", 14, "bold"), bg="#ffffff", fg="#0f172a").pack(pady=(15, 5))
         tk.Label(win_det, text=f"Fecha y Hora: {fecha_hora}", font=("Segoe UI", 10), bg="#ffffff", fg="#64748b").pack(pady=(0, 15))
         
-        # Tabla de productos
         frame_tabla = tk.Frame(win_det, bg="#ffffff", padx=20)
         frame_tabla.pack(fill="both", expand=True)
         
@@ -780,8 +772,6 @@ class Interfaz:
         # Total en la parte inferior
         tk.Label(win_det, text=f"TOTAL COBRADO: {total_str}", font=("Segoe UI", 12, "bold"),
                 bg="#ffffff", fg="#16a34a").pack(pady=15, anchor="e", padx=20)
-
-    # Sistema de apartado
 
     def dialogo_crear_apartado(self):
         if not self.carrito:
@@ -883,8 +873,8 @@ class Interfaz:
                 tags = ('pendiente',) if d[7] == 'Pendiente' else ('liquidado',)
                 tabla.insert("", "end", values=(d[0], d[1], d[2], d[3], f"${d[4]:.2f}", f"${d[5]:.2f}", f"${d[6]:.2f}", d[7]), tags=tags)
             
-            tabla.tag_configure('pendiente', foreground="#dc2626") # Rojo si debe dinero
-            tabla.tag_configure('liquidado', foreground="#16a34a") # Verde si ya pagó
+            tabla.tag_configure('pendiente', foreground="#dc2626") 
+            tabla.tag_configure('liquidado', foreground="#16a34a") 
 
         cargar_apartados()
 

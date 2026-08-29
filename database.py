@@ -4,7 +4,7 @@ import os
 
 class BaseDatos:
     def __init__(self,db_name="punto_de_venta.db"):
-
+                # Seccion para cambiar la ruta de guardado en la base de datos 
                 data_path = os.getenv('APPDATA')
 
                 if not data_path:
@@ -14,8 +14,8 @@ class BaseDatos:
                 os.makedirs(carpeta_pos, exist_ok=True)
 
                 self.db_path = os.path.join(carpeta_pos, db_name)
-
-                self.conn = sqlite3.connect(self.db_path)
+                #-----------------------------------------------------
+                self.conn = sqlite3.connect(self.db_path) # cambiar self.db_path por db_name para hacer el cambio de ruta de forma local
                 self.conn.row_factory = sqlite3.Row
                 self.cursor = self.conn.cursor()
 
@@ -34,11 +34,13 @@ class BaseDatos:
         self.cursor.execute('''
             CREATE TABLE IF NOT EXISTS ventas (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                codigo_prod TEXT,
                 fecha_hora TEXT NOT NULL,
                 total REAL NOT NULL,
                 pago REAL NOT NULL,
                 cambio REAL NOT NULL,
-                metodo_pago TEXT NOT NULL DEFAULT 'Efectivo'
+                metodo_pago TEXT NOT NULL DEFAULT 'Efectivo',
+                FOREIGN KEY (codigo_prod) REFERENCES productos(codigo)
             )
         ''')
 
@@ -91,7 +93,7 @@ class BaseDatos:
 
     def obtener_producto(self, codigo):
         self.cursor.execute("SELECT nombre,precio,stock FROM productos WHERE codigo = ?", (codigo,))
-        return self.cursor.fetchone()  # Devuelve la tupla o None
+        return self.cursor.fetchone()
 
     def obtener_todos_productos(self):
         self.cursor.execute ("SELECT * FROM productos")
@@ -121,13 +123,13 @@ class BaseDatos:
         self.cursor.execute("DELETE FROM productos WHERE codigo =?",(codigo,))
         self.conn.commit()
 
-    def registrar_venta(self, carrito, total, pago, cambio, metodo_pago='Efectivo'):
+    def registrar_venta(self, carrito, codigo_prod, total, pago, cambio, metodo_pago='Efectivo'):
         fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         # Registrar encabezado de la venta
         self.cursor.execute(
-            "INSERT INTO ventas (fecha_hora, total, pago, cambio, metodo_pago) VALUES (?, ?, ?, ?, ?)",
-            (fecha_actual, total, pago, cambio, metodo_pago)
+            "INSERT INTO ventas (codigo_prod,fecha_hora, total, pago, cambio, metodo_pago) VALUES (? ,?, ?, ?, ?, ?)",
+            (codigo_prod ,fecha_actual, total, pago, cambio, metodo_pago)
         )
         venta_id = self.cursor.lastrowid # Recupera el ID de la venta recién creada
         
@@ -145,7 +147,7 @@ class BaseDatos:
     def obtener_ventas_por_fecha(self, fecha):
         # Seleccionamos metodo de pago
         self.cursor.execute("""
-            SELECT id, fecha_hora, total, pago, cambio, metodo_pago 
+            SELECT id,codigo_prod ,fecha_hora, total, pago, cambio, metodo_pago 
             FROM ventas 
             WHERE fecha_hora LIKE ? 
             ORDER BY fecha_hora DESC
@@ -192,7 +194,7 @@ class BaseDatos:
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (apartado_id, codigo, datos['nombre'], datos['cant'], datos['precio'], subtotal))
 
-        # Registrar anticipo como vena del dia
+        # Registrar anticipo como venta del dia
         if a_cuenta > 0:
             self.cursor.execute("""
                 INSERT INTO ventas (fecha_hora, total, pago, cambio, metodo_pago)
