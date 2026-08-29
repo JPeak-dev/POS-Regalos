@@ -54,20 +54,25 @@ class Interfaz:
         titulo = tk.Label(header_frame, text="🎁 La casa del regalo", font=("Segoe UI", 18, "bold"), fg="#ffffff", bg="#0f172a")
         titulo.pack(side="left", padx=20, pady=12)
 
-        btn_mostrar_inv = tk.Button(header_frame,text="Mostrar inventario",font=("Segoe UI", 10, "bold"),
+        btn_mostrar_inv = tk.Button(header_frame,text="Inventario",font=("Segoe UI", 10, "bold"),
                                     bg="#3b82f6",fg="white",activebackground="#2563eb",activeforeground="white",
                                     bd=2, padx=0, pady=0,cursor="hand2", command=self.mostrar_inventario)
         btn_mostrar_inv.pack(side="right",padx=10,)
 
-        btn_reportes = tk.Button(header_frame, text="📊 Ventas del Día", font=("Segoe UI", 10, "bold"),
-                                bg="#10b981", fg="white", activebackground="#059669", activeforeground="white",
-                                bd=2, padx=10, pady=0, cursor="hand2", command=self.abrir_ventana_reportes)
-        btn_reportes.pack(side="right", padx=10)
-
-        btn_apartados = tk.Button(header_frame, text="📦 Gestión de Apartados", font=("Segoe UI", 10, "bold"),
+        btn_apartados = tk.Button(header_frame, text="Apartados", font=("Segoe UI", 10, "bold"),
                                 bg="#f59e0b", fg="white", activebackground="#d97706", activeforeground="white",
                                 bd=2, padx=10, pady=0, cursor="hand2", command=self.abrir_ventana_apartados)
         btn_apartados.pack(side="right", padx=10)
+
+        btn_corte = tk.Button(header_frame, text ="Corte",font= ("Segoe UI",10,"bold"),
+                                bg ="#EC3737", fg = "white",activebackground ="#E85F5F", activeforeground= "white", 
+                                bd=2, padx=10,pady=0, cursor="hand2", command= self.corte)
+        btn_corte.pack(side="right", padx=10)
+
+        btn_reportes = tk.Button(header_frame, text="Ventas del día", font=("Segoe UI", 10, "bold"),
+                                bg="#10b981", fg="white", activebackground="#059669", activeforeground="white",
+                                bd=2, padx=10, pady=0, cursor="hand2", command=self.abrir_ventana_reportes)
+        btn_reportes.pack(side="right", padx=10)
 
     def crear_layout_principal(self):
         main_container = tk.Frame(self.root, bg="#f1f5f9")
