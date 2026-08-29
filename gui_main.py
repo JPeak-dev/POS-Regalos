@@ -611,7 +611,7 @@ class Interfaz:
         tabla_ventas.column("metodo", width=90, anchor="center")
 
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tabla_ventas.yview)
-        tabla_ventas.configure(yscroll=scrollbar.set)
+        tabla_ventas.configure(yscrollcommand=scrollbar.set)
         
         tabla_ventas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
