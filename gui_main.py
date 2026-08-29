@@ -314,7 +314,7 @@ class Interfaz:
     def abrir_ventana_productos(self):
         win = tk.Toplevel(self.root)
         win.title("Gestión de Productos")
-        win.geometry("450x380")
+        win.geometry("450x450")
         win.configure(bg="#ffffff")
         win.grab_set() 
 
@@ -415,6 +415,8 @@ class Interfaz:
         self.tabla_inv.heading("precio", text="Precio U.")
         self.tabla_inv.heading("cant", text="Cant.")
 
+        self.tabla_inv.column("codigo", width=30, anchor="center")
+        self.tabla_inv.column("nombre", width=100, anchor="w")
         self.tabla_inv.column("descripcion",width=200,anchor="w")
         self.tabla_inv.column("precio", width=80, anchor="center")
         self.tabla_inv.column("cant", width=30, anchor="center")
