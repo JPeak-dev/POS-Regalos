@@ -297,7 +297,7 @@ class Interfaz:
 
         cambio = pago - self.total_venta
         
-        id_venta = self.bd.registrar_venta(self.carrito, self.total_venta, pago, cambio, metodo)
+        id_venta = self.bd.registrar_venta(self.carrito, codigo ,self.total_venta, pago, cambio, metodo)
 
         messagebox.showinfo("Venta Exitosa", f"Venta registrada con éxito.\n\nMétodo: {metodo}\nTotal: ${self.total_venta:.2f}\nCambio: ${cambio:.2f}")
 
