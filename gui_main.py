@@ -115,7 +115,7 @@ class Interfaz:
         self.tabla.column("subtotal", width=120, anchor="e")
 
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tabla.yview)
-        self.tabla.configure(yscroll=scrollbar.set)
+        self.tabla.configure(yscrollcommand=scrollbar.set)
 
         self.tabla.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
@@ -426,7 +426,7 @@ class Interfaz:
         self.tabla_inv.column("cant", width=30, anchor="center")
 
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=self.tabla_inv.yview)
-        self.tabla_inv.configure(yscroll=scrollbar.set)
+        self.tabla_inv.configure(yscrollcommand=scrollbar.set)
 
         self.tabla_inv.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
@@ -772,7 +772,7 @@ class Interfaz:
         tabla_det.column("subtotal", width=90, anchor="e")
         
         scroll_det = ttk.Scrollbar(frame_tabla, orient="vertical", command=tabla_det.yview)
-        tabla_det.configure(yscroll=scroll_det.set)
+        tabla_det.configure(yscrollcommand=scroll_det.set)
         
         tabla_det.pack(side="left", fill="both", expand=True)
         scroll_det.pack(side="right", fill="y")
@@ -874,7 +874,7 @@ class Interfaz:
         tabla.column("estado", width=100, anchor="center")
 
         scroll = ttk.Scrollbar(table_frame, orient="vertical", command=tabla.yview)
-        tabla.configure(yscroll=scroll.set)
+        tabla.configure(yscrollcommand=scroll.set)
         tabla.pack(side="left", fill="both", expand=True)
         scroll.pack(side="right", fill="y")
 
