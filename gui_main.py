@@ -581,11 +581,6 @@ class Interfaz:
         ent_fecha.insert(0, fecha_hoy)
         ent_fecha.pack(side="left", padx=(5, 15))
 
-        # Campo para ingresar o modificar el Fondo de Caja Base
-        tk.Label(top_frame, text="Fondo Inicial ($):", bg="#ffffff", font=("Segoe UI", 11, "bold"), fg="#334155").pack(side="left")
-        ent_fondo = tk.Entry(top_frame, font=("Segoe UI", 11), bd=1, relief="solid", width=10)
-        ent_fondo.pack(side="left", padx=(5, 10))
-
         table_frame = tk.Frame(win, bg="#ffffff", padx=20, pady=10)
         table_frame.pack(fill="both", expand=True)
 
@@ -616,9 +611,6 @@ class Interfaz:
         bottom_frame = tk.Frame(win, bg="#f8fafc", pady=15, padx=20)
         bottom_frame.pack(fill="x")
 
-        lbl_fondo_caja = tk.Label(bottom_frame, text="Fondo Inicial: $0.00", font=("Segoe UI", 12), bg="#f8fafc", fg="#475569")
-        lbl_fondo_caja.pack(side="left", padx=(0, 15))
-
         lbl_total_efectivo = tk.Label(bottom_frame, text="Efectivo en Cajón: $0.00", font=("Segoe UI", 13, "bold"), bg="#f8fafc", fg="#16a34a")
         lbl_total_efectivo.pack(side="left", padx=15)
 
@@ -632,22 +624,6 @@ class Interfaz:
 
         def guardar_y_buscar():
             fecha = ent_fecha.get().strip()
-            
-            # Guardar el fondo ingresado si es válido
-            texto_fondo = ent_fondo.get().strip()
-            if texto_fondo:
-                try:
-                    monto_fondo = float(texto_fondo)
-                    self.bd.guardar_fondo_caja(fecha, monto_fondo)
-                except ValueError:
-                    messagebox.showwarning("Atención", "El fondo inicial debe ser un número válido.", parent=win)
-                    return
-
-            # Cargar Fondo de Caja guardado
-            fondo_inicial = self.bd.obtener_fondo_caja(fecha)
-            ent_fondo.delete(0, tk.END)
-            ent_fondo.insert(0, f"{fondo_inicial:.2f}")
-
             # Limpiar y rellenar tabla
             for row in tabla_ventas.get_children():
                 tabla_ventas.delete(row)
@@ -670,18 +646,11 @@ class Interfaz:
                 elif metodo == "Tarjeta" and total:
                     ventas_tarjeta = total
                     
-            efectivo_total_cajon = fondo_inicial + ventas_efectivo
             gran_total_vendido = ventas_efectivo + ventas_tarjeta
-            
-            # Actualizar interfaz
-            lbl_fondo_caja.config(text=f"Fondo Base: ${fondo_inicial:.2f}")
-            lbl_total_efectivo.config(text=f"Efectivo en Cajón: ${efectivo_total_cajon:.2f}")
+
+            lbl_total_efectivo.config(text=f"Efectivo en Cajón: ${ventas_efectivo:.2f}")
             lbl_total_tarjeta.config(text=f"Tarjeta: ${ventas_tarjeta:.2f}")
             lbl_total_dia.config(text=f"Total Vendido: ${gran_total_vendido:.2f}")
-
-        btn_buscar = tk.Button(top_frame, text="🔍 Consultar / Actualizar", font=("Segoe UI", 10, "bold"),
-                            bg="#3b82f6", fg="white", bd=0, padx=12, cursor="hand2", command=guardar_y_buscar)
-        btn_buscar.pack(side="left", padx=10)
 
         # Cargar datos iniciales
         guardar_y_buscar()
