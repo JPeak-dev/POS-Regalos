@@ -941,3 +941,144 @@ class Interfaz:
         bottom_frame.pack(pady=10)
         tk.Button(bottom_frame, text="💵 Registrar Abono / Liquidar", font=("Segoe UI", 12, "bold"),
                     bg="#3b82f6", fg="white", bd=0, padx=20, pady=10, cursor="hand2", command=abonar).pack()
+
+    def corte(self):
+        fecha_hoy = datetime.datetime.now().strftime("%Y-%m-%d")
+
+        ventana_corte = tk.Toplevel(self.root)
+        ventana_corte.title("Corte de Caja Diario")
+        ventana_corte.geometry("480x500")
+        ventana_corte.configure(bg="#F8F9FA")
+        ventana_corte.resizable(False, False)
+
+        header_frame = tk.Frame(ventana_corte, bg="#c51919")
+        header_frame.pack(fill="x")
+        
+        tk.Label(header_frame, text="Corte de Caja - Fecha:", font=("Segoe UI", 11, "bold"), fg="white", bg="#c51919").pack(side="left", padx=10, pady=10)
+        
+        ent_fecha = tk.Entry(header_frame, font=("Segoe UI", 11), width=12)
+        ent_fecha.insert(0, fecha_hoy)
+        ent_fecha.pack(side="left", padx=5, pady=10)
+        
+        btn_buscar = tk.Button(header_frame, text="🔍 Buscar", command=lambda: actualizar_totales(), font=("Segoe UI", 9, "bold"), bg="#3b82f6", fg="white", bd=0, padx=8)
+        btn_buscar.pack(side="left", padx=5, pady=10)
+
+        frame_fondo = tk.Frame(ventana_corte, bg="#F8F9FA")
+        frame_fondo.pack(pady=15, fill="x", padx=20)
+
+        tk.Label(frame_fondo, text="Fondo Inicial ($):", bg="#F8F9FA", font=("Segoe UI", 10, "bold")).pack(side="left")
+        
+        ent_fondo = tk.Entry(frame_fondo, font=("Segoe UI", 10), width=12)
+        ent_fondo.pack(side="left", padx=10)
+
+        def guardar_fondo_corte():
+            fecha_consulta = ent_fecha.get().strip()
+            texto_fondo = ent_fondo.get().strip()
+            if texto_fondo:
+                try:
+                    monto = float(texto_fondo)
+                    self.bd.guardar_fondo_caja(fecha_consulta, monto)
+                    messagebox.showinfo("Éxito", f"Fondo inicial guardado para {fecha_consulta}.", parent=ventana_corte)
+                    actualizar_totales()
+                except ValueError:
+                    messagebox.showerror("Error", "Ingresa un número válido.", parent=ventana_corte)
+
+        tk.Button(frame_fondo, text="💾 Guardar Fondo", command=guardar_fondo_corte, 
+                bg="#3b82f6", fg="white", font=("Segoe UI", 9, "bold"), relief="flat").pack(side="left")
+
+        info_frame = tk.Frame(ventana_corte, bg="white", bd=1, relief="solid")
+        info_frame.pack(padx=20, pady=5, fill="x")
+
+        lbl_fondo = tk.Label(info_frame, text="(+) Fondo Inicial: $0.00", bg="white", font=("Segoe UI", 10))
+        lbl_fondo.pack(anchor="w", padx=15, pady=6)
+
+        lbl_ventas = tk.Label(info_frame, text="(+) Ventas en Efectivo: $0.00", bg="white", font=("Segoe UI", 10))
+        lbl_ventas.pack(anchor="w", padx=15, pady=6)
+
+        lbl_retiros = tk.Label(info_frame, text="(-) Retiros de Caja: $0.00", bg="white", font=("Segoe UI", 10), fg="#d32f2f")
+        lbl_retiros.pack(anchor="w", padx=15, pady=6)
+        
+        tk.Frame(info_frame, height=1, bg="#E0E0E0").pack(fill="x", padx=10, pady=4)
+        
+        lbl_saldo = tk.Label(info_frame, text="Saldo para el día siguiente: $0.00", bg="white", font=("Segoe UI", 11, "bold"), fg="#2e7d32")
+        lbl_saldo.pack(anchor="w", padx=15, pady=6)
+
+        saldo_disponible = [0.0] 
+
+        def actualizar_totales():
+            fecha_consulta = ent_fecha.get().strip()
+
+            fondo_ini = self.bd.obtener_fondo_caja(fecha_consulta)
+
+            if fondo_ini == 0.0:
+                fondo_ini = self.bd.obtener_ultimo_saldo_final(fecha_consulta)
+                
+            ent_fondo.delete(0, tk.END)
+            ent_fondo.insert(0, f"{fondo_ini:.2f}")
+
+            totales_metodo = dict(self.bd.obtener_totales_por_metodo(fecha_consulta))
+            v_efectivo = totales_metodo.get('Efectivo', 0.0)
+
+            t_retiros = self.bd.obtener_total_retiros(fecha_consulta)
+
+            s_final = fondo_ini + v_efectivo - t_retiros
+            saldo_disponible[0] = s_final
+
+            lbl_fondo.config(text=f"(+) Fondo Inicial: ${fondo_ini:,.2f}")
+            lbl_ventas.config(text=f"(+) Ventas en Efectivo: ${v_efectivo:,.2f}")
+            lbl_retiros.config(text=f"(-) Retiros de Caja: ${t_retiros:,.2f}")
+            lbl_saldo.config(text=f"Saldo para el día siguiente: ${s_final:,.2f}")
+
+        frame_retiro = tk.LabelFrame(ventana_corte, text=" Registrar Nuevo Retiro ", bg="#F8F9FA", font=("Segoe UI", 9, "bold"), padx=10, pady=10)
+
+        tk.Label(frame_retiro, text="Monto ($):", bg="#F8F9FA", font=("Segoe UI", 9)).grid(row=0, column=0, sticky="w", pady=2)
+        entry_monto = tk.Entry(frame_retiro, font=("Segoe UI", 10), width=15)
+        entry_monto.grid(row=0, column=1, pady=2, padx=5)
+
+        tk.Label(frame_retiro, text="Motivo:", bg="#F8F9FA", font=("Segoe UI", 9)).grid(row=1, column=0, sticky="w", pady=2)
+        entry_concepto = tk.Entry(frame_retiro, font=("Segoe UI", 10), width=25)
+        entry_concepto.grid(row=1, column=1, pady=2, padx=5)
+
+        def confirmar_retiro():
+            try:
+                monto = float(entry_monto.get().strip())
+                
+                if monto <= 0:
+                    messagebox.showerror("Error", "El monto debe ser mayor a 0.", parent=ventana_corte)
+                    return
+                if monto > saldo_disponible[0]:
+                    messagebox.showerror("Error", "No puedes retirar más de lo que hay en caja.", parent=ventana_corte)
+                    return
+                
+                concepto = entry_concepto.get().strip() or "Retiro de caja"
+                
+                self.bd.registrar_retiro(monto, concepto)
+                messagebox.showinfo("Éxito", f"Retiro de ${monto:,.2f} guardado.", parent=ventana_corte)
+                
+                entry_monto.delete(0, tk.END)
+                entry_concepto.delete(0, tk.END)
+                frame_retiro.pack_forget()
+                
+                actualizar_totales()
+                
+            except ValueError:
+                messagebox.showerror("Error", "Ingresa un número válido.", parent=ventana_corte)
+
+        tk.Button(frame_retiro, text="Confirmar Retiro", command=confirmar_retiro, 
+                bg="#d32f2f", fg="white", font=("Segoe UI", 9, "bold"), relief="flat").grid(row=2, column=0, columnspan=2, pady=8)
+
+        def toggle_formulario_retiro():
+            if frame_retiro.winfo_viewable():
+                frame_retiro.pack_forget()
+            else:
+                frame_retiro.pack(padx=20, pady=10, fill="x")
+
+        btn_frame = tk.Frame(ventana_corte, bg="#F8F9FA")
+        btn_frame.pack(pady=15)
+
+        tk.Button(
+            btn_frame, text="💸 Hacer Retiro", command=toggle_formulario_retiro, 
+            bg="#E65100", fg="white", font=("Segoe UI", 10, "bold"), padx=15, pady=5, relief="flat"
+        ).pack(side="left", padx=10)
+
+        actualizar_totales()

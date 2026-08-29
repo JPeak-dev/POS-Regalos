@@ -90,6 +90,15 @@ class BaseDatos:
             )
         ''')
 
+        self.cursor.execute('''
+        CREATE TABLE IF NOT EXISTS retiros (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        fecha_hora TEXT NOT NULL,
+        monto REAL NOT NULL,
+        concepto TEXT
+        )
+    ''')
+
         self.conn.commit()
 
     def obtener_producto(self, codigo):
@@ -289,3 +298,43 @@ class BaseDatos:
             ON CONFLICT(fecha) DO UPDATE SET fondo_inicial = excluded.fondo_inicial
         """, (fecha, monto))
         self.conn.commit()
+
+    def registrar_retiro(self, monto, concepto="Retiro de caja"):
+            fecha_actual = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.cursor.execute(
+            "INSERT INTO retiros (fecha_hora, monto, concepto) VALUES (?, ?, ?)",
+            (fecha_actual, monto, concepto)
+            )
+            self.conn.commit()
+
+    def obtener_total_retiros(self, fecha):
+        self.cursor.execute(
+            "SELECT SUM(monto) FROM retiros WHERE fecha_hora LIKE ?",
+            (f"{fecha}%",)
+        )
+        row = self.cursor.fetchone()
+        return row[0] if row[0] else 0.0
+
+    def obtener_ultimo_saldo_final(self, fecha_actual):
+
+        self.cursor.execute("SELECT fecha FROM caja_diaria WHERE fecha < ? ORDER BY fecha DESC LIMIT 1", (fecha_actual,))
+        row = self.cursor.fetchone()
+        
+        if row:
+            fecha_ant = row[0]
+            fondo_ant = self.obtener_fondo_caja(fecha_ant)
+            
+            # Ventas en efectivo del día
+            self.cursor.execute("SELECT SUM(total) FROM ventas WHERE fecha_hora LIKE ? AND metodo_pago = 'Efectivo'", (f"{fecha_ant}%",))
+            v_row = self.cursor.fetchone()
+            ventas_ant = v_row[0] if v_row and v_row[0] else 0.0
+            
+            # Retiros del dia
+            self.cursor.execute("SELECT SUM(monto) FROM retiros WHERE fecha_hora LIKE ?", (f"{fecha_ant}%",))
+            r_row = self.cursor.fetchone()
+            retiros_ant = r_row[0] if r_row and r_row[0] else 0.0
+            
+            # Retorna el cálculo matemático del saldo final anterior
+            return fondo_ant + ventas_ant - retiros_ant
+            
+        return 0.0 # Si no hay días anteriores, devuelve 0
