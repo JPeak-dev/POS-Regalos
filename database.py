@@ -226,38 +226,40 @@ class BaseDatos:
         
         self.cursor.execute("SELECT cliente, a_cuenta, resta FROM apartados WHERE id = ?", (apartado_id,))
         row = self.cursor.fetchone()
-        
-        if row:
-            cliente = row['cliente']
-            nuevo_a_cuenta = row['a_cuenta'] + monto_abono
-            nueva_resta = row['resta'] - monto_abono
-            
-            estado = 'Liquidado' if nueva_resta <= 0 else 'Pendiente'
-            fecha_liq = fecha_actual if estado == 'Liquidado' else "---"
-            
-            # Actualizar el estado del apartado
-            self.cursor.execute("""
-                UPDATE apartados 
-                SET a_cuenta = ?, resta = ?, estado = ?, fecha_liquidacion = ?
-                WHERE id = ?
-            """, (nuevo_a_cuenta, nueva_resta, estado, fecha_liq, apartado_id))
 
-            # Registrar el abono actual
-            self.cursor.execute("""
-                INSERT INTO ventas (fecha_hora, total, pago, cambio, metodo_pago)
-                VALUES (?, ?, ?, 0.0, 'Efectivo')
-            """, (fecha_actual, monto_abono, monto_abono))
+        if not row:
+            raise ValueError(f"No se encontró el apartado con ID {apartado_id}")
             
-            venta_id = self.cursor.lastrowid
-
-            self.cursor.execute("""
-                INSERT INTO detalle_ventas (venta_id, codigo, nombre, cantidad, precio_unitario, subtotal)
-                VALUES (?, 'ABONO', ?, 1, ?, ?)
-            """, (venta_id, f"Abono Apartado #{apartado_id} ({cliente})", monto_abono, monto_abono))
-            
-            self.conn.commit()
-            return estado, nueva_resta
+        cliente = row['cliente']
+        nuevo_a_cuenta = row['a_cuenta'] + monto_abono
+        nueva_resta = row['resta'] - monto_abono
         
+        estado = 'Liquidado' if nueva_resta <= 0 else 'Pendiente'
+        fecha_liq = fecha_actual if estado == 'Liquidado' else "---"
+        
+        # Actualizar el estado del apartado
+        self.cursor.execute("""
+            UPDATE apartados 
+            SET a_cuenta = ?, resta = ?, estado = ?, fecha_liquidacion = ?
+            WHERE id = ?
+        """, (nuevo_a_cuenta, nueva_resta, estado, fecha_liq, apartado_id))
+
+        # Registrar el abono actual
+        self.cursor.execute("""
+            INSERT INTO ventas (fecha_hora, total, pago, cambio, metodo_pago)
+            VALUES (?, ?, ?, 0.0, 'Efectivo')
+        """, (fecha_actual, monto_abono, monto_abono))
+        
+        venta_id = self.cursor.lastrowid
+
+        self.cursor.execute("""
+            INSERT INTO detalle_ventas (venta_id, codigo, nombre, cantidad, precio_unitario, subtotal)
+            VALUES (?, 'ABONO', ?, 1, ?, ?)
+        """, (venta_id, f"Abono Apartado #{apartado_id} ({cliente})", monto_abono, monto_abono))
+        
+        self.conn.commit()
+        
+        return estado, nueva_resta        
     def obtener_todos_apartados(self):
         self.cursor.execute("""
             SELECT id, cliente, fecha_creacion, fecha_liquidacion, total, a_cuenta, resta, estado 
