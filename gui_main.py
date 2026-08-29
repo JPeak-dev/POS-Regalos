@@ -166,11 +166,6 @@ class Interfaz:
                                 bd=0, pady=10, cursor="hand2", command=self.dialogo_crear_apartado)
         btn_apartar.pack(fill="x", pady=(0, 10))
 
-        btn_quitar = tk.Button(right_panel, text="🗑 Quitar Elemento", font=("Segoe UI", 10),
-                            bg="#ef4444", fg="white", activebackground="#dc2626", activeforeground="white",
-                            bd=0, pady=8, cursor="hand2", command=self.quitar_elemento_carrito)
-        btn_quitar.pack(fill="x", pady=(0, 10))
-
         btn_cancelar = tk.Button(right_panel, text="❌ Cancelar Venta", font=("Segoe UI", 10),
                                 bg="#94a3b8", fg="white", activebackground="#64748b", activeforeground="white",
                                 bd=0, pady=8, cursor="hand2", command=self.limpiar_venta)
