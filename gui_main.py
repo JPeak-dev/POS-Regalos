@@ -327,6 +327,7 @@ class Interfaz:
         fields = [
             ("Código de Barras:", "ent_cod"),
             ("Nombre del Producto:", "ent_nom"),
+            ("Descripción del producto:","ent_des"),
             ("Precio de Venta ($):", "ent_pre"),
             ("Stock Inicial:", "ent_sto")
         ]
@@ -343,6 +344,7 @@ class Interfaz:
         def guardar():
             cod = entries['ent_cod'].get().strip()
             nom = entries['ent_nom'].get().strip()
+            des = entries['ent_des'].get().strip()
             pre = entries['ent_pre'].get().strip()
             sto = entries['ent_sto'].get().strip()
 
@@ -357,15 +359,15 @@ class Interfaz:
                 messagebox.showerror("Error", "El precio y stock deben ser valores numéricos válidos.", parent=win)
                 return
             
-            exito, mensaje = self.bd.guardar_productos(cod, nom, pre_val, sto_val)
+            exito, mensaje = self.bd.guardar_productos(cod, nom, des, pre_val, sto_val)
 
             if exito:
                 messagebox.showinfo("Éxito", f"Producto '{nom}' registrado correctamente.", parent=win)
-                win.destroy(self.cargar_tabla_inventario(self.bd.obtener_todos_productos()))
+                win.destroy()
                 self.entry_codigo.focus_set()
+                self.cargar_tabla_inventario(self.bd.obtener_todos_productos())
             else:
                 messagebox.showerror("Error", mensaje, parent=win)
-
 
         btn_guardar = tk.Button(win, text="Guardar Producto", font=("Segoe UI", 11, "bold"),
                                 bg="#3b82f6", fg="white", bd=0, pady=8, cursor="hand2", command=guardar)
@@ -405,16 +407,16 @@ class Interfaz:
         table_frame = tk.Frame(self.ventana, bg="#2f00ff")
         table_frame.pack(fill="both", expand=True)
 
-        columns = ("codigo", "nombre", "precio", "cant")
+        columns = ("codigo", "nombre","descripcion", "precio", "cant")
         self.tabla_inv = ttk.Treeview(table_frame, columns=columns, show="headings")
 
         self.tabla_inv.heading("codigo", text="Código")
         self.tabla_inv.heading("nombre", text="Producto")
+        self.tabla_inv.heading("descripcion",text="Descripción")
         self.tabla_inv.heading("precio", text="Precio U.")
         self.tabla_inv.heading("cant", text="Cant.")
 
-        self.tabla_inv.column("codigo", width=160, anchor="center")
-        self.tabla_inv.column("nombre", width=250, anchor="w")
+        self.tabla_inv.column("descripcion",width=200,anchor="w")
         self.tabla_inv.column("precio", width=80, anchor="center")
         self.tabla_inv.column("cant", width=30, anchor="center")
 
@@ -430,15 +432,16 @@ class Interfaz:
         self.tabla_inv.bind("<Button-3>", self.mostrar_menu_opciones)
 
     def cargar_tabla_inventario(self, productos):
-        """Limpia la tabla y la vuelve a llenar con la lista de productos enviada."""
+
         for item in self.tabla_inv.get_children():
             self.tabla_inv.delete(item)
             
         for fila in productos:
-            self.tabla_inv.insert("", tk.END, values=(fila[0], fila[1], fila[2], fila[3]))
+            self.tabla_inv.insert("", tk.END, values=(fila[0], fila[1], fila[2], fila[3],fila[4]))
 
     def filtrar_inventario(self, event=None):
-        """Obtiene el texto del cuadro de búsqueda y filtra la tabla en tiempo real."""
+
+        #Obtiene el texto del cuadro de búsqueda y filtra la tabla en tiempo real
         texto = self.ent_buscar.get().strip()
         
         if texto:
@@ -491,40 +494,45 @@ class Interfaz:
         item_values = self.tabla_inv.item(item_id)['values']
         codigo_actual = str(item_values[0])
         nombre_actual = str(item_values[1])
-        precio_actual = str(item_values[2])
-        cant_actual = str(item_values[3])
+        descripcion_actual = str(item_values[2])
+        precio_actual = str(item_values[3])
+        cant_actual = str(item_values[4])
 
         # Crear ventana secundaria para editar
         ventana_edicion = tk.Toplevel(self.ventana)
         ventana_edicion.title("Editar Producto")
         ventana_edicion.geometry("350x250")
         ventana_edicion.configure(bg="#ffffff")
-        ventana_edicion.grab_set() # Bloquea la ventana principal hasta cerrar esta
+        ventana_edicion.grab_set() 
 
         # Variables para los Entry
         var_codigo = tk.StringVar(value=codigo_actual)
         var_nombre = tk.StringVar(value=nombre_actual)
+        var_desc = tk.StringVar(value=descripcion_actual)
         var_precio = tk.StringVar(value=precio_actual)
         var_cant = tk.StringVar(value=cant_actual)
 
         # Formulario
         tk.Label(ventana_edicion, text="Código:", bg="#ffffff").grid(row=0, column=0, padx=10, pady=10, sticky="e")
-        tk.Entry(ventana_edicion, textvariable=var_codigo, state="readonly").grid(row=0, column=1, padx=10, pady=10) # Código como readonly (opcional)
+        tk.Entry(ventana_edicion, textvariable=var_codigo, state="readonly").grid(row=0, column=1, padx=10, pady=10)
 
         tk.Label(ventana_edicion, text="Nombre:", bg="#ffffff").grid(row=1, column=0, padx=10, pady=10, sticky="e")
         tk.Entry(ventana_edicion, textvariable=var_nombre).grid(row=1, column=1, padx=10, pady=10)
 
-        tk.Label(ventana_edicion, text="Precio U.:", bg="#ffffff").grid(row=2, column=0, padx=10, pady=10, sticky="e")
-        tk.Entry(ventana_edicion, textvariable=var_precio).grid(row=2, column=1, padx=10, pady=10)
+        tk.Label(ventana_edicion, text="Descripción:", bg="#ffffff").grid(row=2, column=0, padx=10, pady=10, sticky="e")
+        tk.Entry(ventana_edicion, textvariable=var_desc).grid(row=2, column=1, padx=10, pady=10)
 
-        tk.Label(ventana_edicion, text="Cant.:", bg="#ffffff").grid(row=3, column=0, padx=10, pady=10, sticky="e")
-        tk.Entry(ventana_edicion, textvariable=var_cant).grid(row=3, column=1, padx=10, pady=10)
+        tk.Label(ventana_edicion, text="Precio U.:", bg="#ffffff").grid(row=3, column=0, padx=10, pady=10, sticky="e")
+        tk.Entry(ventana_edicion, textvariable=var_precio).grid(row=3, column=1, padx=10, pady=10)
+
+        tk.Label(ventana_edicion, text="Cant.:", bg="#ffffff").grid(row=4, column=0, padx=10, pady=10, sticky="e")
+        tk.Entry(ventana_edicion, textvariable=var_cant).grid(row=4, column=1, padx=10, pady=10)
 
         # Botón Guardar
         tk.Button(ventana_edicion, text="Guardar Cambios", 
                     command=lambda: self.guardar_edicion(
-                    item_id, codigo_actual, var_nombre.get(), var_precio.get(), var_cant.get(), ventana_edicion
-                    )).grid(row=4, column=0, columnspan=2, pady=15)
+                    item_id, codigo_actual, var_nombre.get(),var_desc.get(), var_precio.get(), var_cant.get(), ventana_edicion
+                    )).grid(row=5, column=0, columnspan=2, pady=15)
 
     def guardar_edicion(self, item_id, codigo, nuevo_nombre,nueva_desc, nuevo_precio, nueva_cant, ventana_edicion):
         # Validar que no haya campos vacíos
@@ -895,7 +903,6 @@ class Interfaz:
 
             resta = float(valores[6].replace('$', ''))
 
-            # Ventana pequeña para abonar
             win_abono = tk.Toplevel(win)
             win_abono.title("Abonar")
             win_abono.geometry("300x200")

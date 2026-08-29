@@ -26,6 +26,7 @@ class BaseDatos:
             CREATE TABLE IF NOT EXISTS productos (
                 codigo TEXT PRIMARY KEY,
                 nombre TEXT NOT NULL,
+                descripcion TEXT DEFAULT 'Sin descripción',
                 precio REAL NOT NULL,
                 stock INTEGER NOT NULL
             )
@@ -99,11 +100,11 @@ class BaseDatos:
         self.cursor.execute ("SELECT * FROM productos")
         return self.cursor.fetchall()
 
-    def guardar_productos(self,cod, nom,pre,sto):
+    def guardar_productos(self,cod, nom, des, pre, sto):
 
         try:
-            self.cursor.execute("INSERT INTO productos VALUES (?, ?, ?, ?)", 
-                                (cod, nom, pre, sto))
+            self.cursor.execute("INSERT INTO productos VALUES (?, ?, ?, ?, ?)", 
+                                (cod, nom, des, pre, sto))
             self.conn.commit()
             return True,"Producto registrado correctamente "
         
@@ -256,22 +257,17 @@ class BaseDatos:
         """)
         return self.cursor.fetchall()
 
-    
+    def actualizar_producto(self, codigo, nombre, descripcion, precio, stock):
 
-    def actualizar_producto(self, codigo, nombre, precio, stock):
-        """
-        Actualiza el nombre, precio y stock de un producto existente.
-        El código no se modifica ya que es la llave primaria.
-        """
         self.cursor.execute("""
             UPDATE productos 
-            SET nombre = ?, precio = ?, stock = ? 
+            SET nombre = ?, descripcion = ?, precio = ?, stock = ? 
             WHERE codigo = ?
-        """, (nombre, precio, stock, codigo))
+        """, (nombre, descripcion, precio, stock, codigo))
         self.conn.commit()
 
     def buscar_productos(self, texto):
-        """Busca productos cuya clave o nombre coincidan parcialmente con el texto."""
+
         param = f"%{texto}%"
         self.cursor.execute(
             "SELECT codigo, nombre, precio, stock FROM productos WHERE codigo LIKE ? OR nombre LIKE ?",
@@ -280,13 +276,13 @@ class BaseDatos:
         return self.cursor.fetchall()
 
     def obtener_fondo_caja(self, fecha):
-        """Devuelve el fondo inicial registrado para una fecha específica."""
+
         self.cursor.execute("SELECT fondo_inicial FROM caja_diaria WHERE fecha = ?", (fecha,))
         row = self.cursor.fetchone()
         return row[0] if row else 0.0
 
     def guardar_fondo_caja(self, fecha, monto):
-        """Registra o actualiza el fondo inicial del cajón para una fecha."""
+
         self.cursor.execute("""
             INSERT INTO caja_diaria (fecha, fondo_inicial) 
             VALUES (?, ?)
