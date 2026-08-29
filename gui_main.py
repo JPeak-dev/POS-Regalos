@@ -251,8 +251,8 @@ class Interfaz:
             self.entry_pago.delete(0, tk.END)
             self.lbl_cambio_val.config(text="$0.00", fg="#2563eb")
 
-    def quitar_elemento_carrito(self):
-        selected_item = self.tabla.selection()
+    def quitar_elemento_carrito(self,selected_item):
+        
         if not selected_item:
             messagebox.showinfo("Atención", "Selecciona un producto de la lista para eliminarlo.")
             return
@@ -310,7 +310,6 @@ class Interfaz:
         self.entry_pago.delete(0, tk.END)
         self.actualizar_tabla()
         self.entry_codigo.focus_set()
-
 
     def abrir_ventana_productos(self):
         win = tk.Toplevel(self.root)
@@ -452,24 +451,38 @@ class Interfaz:
         self.cargar_tabla_inventario(productos)
 
     def mostrar_menu_opciones(self, event):
-        # Identificar en qué fila se hizo el clic
-        item_id = self.tabla_inv.identify_row(event.y)
-        
-        if item_id: 
-            # Seleccionar visualmente la fila
-            self.tabla_inv.selection_set(item_id)
-            
-            # Crear el menú
+
+        tabla = event.widget
+
+        item_id = tabla.identify_row(event.y)
+        if not item_id:
+            return  
+
+        tabla.selection_set(item_id)
+        item_values = tabla.item(item_id).get("values", [])
+
+        if not item_values:
+            return
+
+        if hasattr(self, "tabla_inv") and tabla == self.tabla_inv:
             menu = tk.Menu(self.ventana, tearoff=0)
-            
-            # Opción de edición
+
             menu.add_command(label="Editar producto", command=lambda: self.abrir_edicion(item_id))
-            
-            # Opción de eliminación
-            menu.add_command(label="Eliminar producto", command=lambda: self.ejecutar_eliminacion(item_id))
-            
-            # Mostrar el menú en las coordenadas del ratón
-            menu.tk_popup(event.x_root, event.y_root)
+
+            menu.add_command(label="Eliminar producto",command=lambda: self.ejecutar_eliminacion(item_id),)
+            try:
+                menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                menu.grab_release()
+
+        elif hasattr(self, "tabla") and tabla == self.tabla:
+            menu = tk.Menu(self.root, tearoff=0)
+
+            menu.add_command(label="Quitar producto", command=lambda: self.quitar_elemento_carrito(item_id))
+            try:
+                menu.tk_popup(event.x_root, event.y_root)
+            finally:
+                menu.grab_release()
 
     def ejecutar_eliminacion(self, item_id):
         # Extraer los datos de la fila que fue seleccionada
