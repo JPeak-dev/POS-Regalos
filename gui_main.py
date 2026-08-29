@@ -120,6 +120,8 @@ class Interfaz:
         self.tabla.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+        self.tabla.bind("<Button-3>", self.mostrar_menu_opciones)
+
         # panel derecho con el resumen de productos
         right_panel = tk.Frame(main_container, bg="#ffffff", bd=1, relief="solid", padx=20, pady=20)
         right_panel.pack(side="right", fill="y", padx=(10, 0))
