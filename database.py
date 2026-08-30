@@ -281,7 +281,7 @@ class BaseDatos:
 
         param = f"%{texto}%"
         self.cursor.execute(
-            "SELECT codigo, nombre, precio, stock FROM productos WHERE codigo LIKE ? OR nombre LIKE ?",
+            "SELECT codigo, nombre, descripcion, precio, stock FROM productos WHERE codigo LIKE ? OR nombre LIKE ?",
             (param, param)
         )
         return self.cursor.fetchall()
